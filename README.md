@@ -17,7 +17,7 @@ MiniFB Raycaster is a simple raycasting engine built using the MiniFB library. I
 ## Installation
 1. Clone the repository:
     ```sh
-    git clone https://github.com/zank613/minifb_raycaster.git
+    git clone https://github.com/Zank613/minifb_raycaster.git
     ```
 2. Navigate to the project directory:
     ```sh
