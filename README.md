@@ -1,4 +1,5 @@
 # MiniFB Raycaster
+![The Raycaster](/assets/raycaster_1.png "Raycaster")
 
 ## Overview
 MiniFB Raycaster is a simple raycasting engine built using the MiniFB library. It demonstrates basic 3D rendering techniques using 2D raycasting.
