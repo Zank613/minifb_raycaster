@@ -42,6 +42,11 @@ Run the executable:
 ./minifb_raycaster
 ```
 
+## Compilers Tested
+
+- GCC (MinGW on Windows): Successfully built and ran without issues.
+- MSVC (Microsoft Visual Studio): Segmentation faults encountered during build.
+
 ## Contributing
 Contributions are welcome! Please open an issue or submit a pull request.
 
@@ -52,3 +57,6 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 - [Minifb](https://github.com/emoon/minifb) for the framebuffer library
 - [Lode Vandevenne](https://lodev.org/cgtutor/raycasting.html) for the raycasting tutorial
 
+## Screenshots
+
+![The Raycaster](/assets/raycaster_2.png "Raycaster")
