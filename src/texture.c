@@ -115,34 +115,3 @@ uint32_t choose_wall_color(int side, int worldMap[MAP_HEIGHT][MAP_WIDTH], int ma
 
     return color;
 }
-
-void make_red_gradient(Texture *tex)
-{
-    for (int y = 0; y < tex->height; ++y)
-    {
-        for (int x = 0; x < tex->width; ++x)
-        {
-            uint32_t red_value = (uint32_t)(x * 255 / tex->width);
-            uint32_t color = MFB_RGB(red_value, 0, 0); // Red channel gradient
-            set_pixel(tex, x, y, color);
-        }
-    }
-}
-
-void make_black_cross(Texture *tex)
-{
-    for (int y = 0; y < tex->height; ++y)
-    {
-        for (int x = 0; x < tex->width; ++x)
-        {
-            if (x == tex->width / 2 || y == tex->height / 2)
-            {
-                set_pixel(tex, x, y, MFB_RGB(0, 0, 0)); // Black cross
-            }
-            else
-            {
-                set_pixel(tex, x, y, MFB_RGB(255, 0, 0)); // Red background
-            }
-        }
-    }
-}

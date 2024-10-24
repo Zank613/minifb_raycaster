@@ -65,7 +65,6 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
 // run the raycasting engine loop
 void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH], Texture *textures[]);
 
-
 // moves on the direction depending on the input
 void get_move(const uint8_t *key_buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], Player *player);
 
@@ -76,10 +75,6 @@ void generate_textures(Texture *textures[]);
 
 // Function to set a pixel's color using 32 bit packed color
 void set_pixel(Texture *tex, int x, int y, uint32_t color);
-
-void make_red_gradient(Texture *tex);
-
-void make_black_cross(Texture *tex);
 
 // chooses a wall color 
 uint32_t choose_wall_color(int side, int worldMap[MAP_HEIGHT][MAP_WIDTH], int mapX, int mapY, Color *color_selection);
