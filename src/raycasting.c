@@ -1,16 +1,13 @@
 #include "../include/raycaster.h"
 
-int main(void) 
-{
+int main(void) {
     Raycaster raycaster = raycaster_init("Raycaster", WIDTH, HEIGHT);
-    if (raycaster.error != RAYCASTER_SUCCESS) 
-    {
+    if (raycaster.error != RAYCASTER_SUCCESS) {
         printf("Failed to open window or initialize resources.\n");
         return -1;
     }
 
-    Player player = 
-    {
+    Player player = {
         2.5,  // x position
         18.5, // y position
         -1,   // dirX
