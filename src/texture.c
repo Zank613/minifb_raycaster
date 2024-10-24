@@ -3,10 +3,86 @@
 Texture *init_texture(int width, int height)
 {
     Texture *tex = (Texture *)malloc(sizeof(Texture));
+    if (!tex)
+    {
+        printf("Failed to allocate Texture struct\n");
+        return NULL;
+    }
     tex->width = width;
     tex->height = height;
-    tex->pixels = (uint32_t *)malloc(width * height * sizeof(uint32_t)); // 32 bits (4 bytes) per pixel
+    tex->pixels = (uint32_t *)malloc(width * height * sizeof(uint32_t));
+    if (!tex->pixels)
+    {
+        printf("Failed to allocate Texture pixels\n");
+        free(tex);
+        return NULL;
+    }
     return tex;
+}
+
+
+void generate_textures(Texture *textures[])
+{
+    for (int i = 0; i < NUM_TEXTURES; i++)
+    {
+        textures[i] = init_texture(texWidth, texHeight);
+        if (!textures[i])
+        {
+            printf("Failed to initialize texture %d\n", i);
+            // Handle error
+        }
+    }
+
+    for (int x = 0; x < texWidth; x++)
+    {
+        for (int y = 0; y < texHeight; y++)
+        {
+            int xorcolor = (x * 256 / texWidth) ^ (y * 256 / texHeight);
+            int ycolor = y * 256 / texHeight;
+            int xycolor = y * 128 / texHeight + x * 128 / texWidth;
+
+            uint32_t color;
+            // Texture 0: Flat red texture with black cross
+            color = 0xFF0000; // Red color
+            if (x == y || x == texWidth - y)
+            {
+                color = 0x000000; // Black color
+            }
+            set_pixel(textures[0], x, y, color);
+
+            // Texture 1: Sloped greyscale
+            color = (xycolor << 16) | (xycolor << 8) | xycolor;
+            set_pixel(textures[1], x, y, color);
+
+            // Texture 2: Sloped yellow gradient
+            color = (xycolor << 8) | (xycolor << 16);
+            set_pixel(textures[2], x, y, color);
+
+            // Texture 3: XOR greyscale
+            color = (xorcolor << 16) | (xorcolor << 8) | xorcolor;
+            set_pixel(textures[3], x, y, color);
+
+            // Texture 4: XOR green
+            color = xorcolor << 8;
+            set_pixel(textures[4], x, y, color);
+
+            // Texture 5: Red bricks
+            color = 0xC00000; // Dark red
+            if ((x % 16) && (y % 16))
+            {
+                color = 0xFF0000; // Bright red
+            }
+            set_pixel(textures[5], x, y, color);
+
+            // Texture 6: Red gradient
+            color = ycolor << 16;
+            set_pixel(textures[6], x, y, color);
+
+            // Texture 7: Flat grey texture
+            color = (128 << 16) | (128 << 8) | 128;
+            set_pixel(textures[7], x, y, color);
+        }
+    }
 }
 
 void set_pixel(Texture *tex, int x, int y, uint32_t color)

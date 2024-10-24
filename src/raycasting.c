@@ -7,16 +7,8 @@ int main(void) {
         return -1;
     }
 
-    Color color_selection[] = 
-    {
-        COLOR_WHITE,  // 0 or invalid case
-        COLOR_WHITE,  // 1
-        COLOR_RED,    // 2
-        COLOR_BLUE,   // 3
-        COLOR_PURPLE, // 4
-        COLOR_CYAN,   // 5
-        COLOR_GREEN   // 6
-    };
+    Texture *textures[NUM_TEXTURES];
+    generate_textures(textures);
 
     Player player = 
     {
@@ -29,7 +21,17 @@ int main(void) {
     };
 
     // Run the game loop
-    run_raycaster(&raycaster, &player, worldMap, color_selection);
+    run_raycaster(&raycaster, &player, worldMap, textures);
+
+    // Cleanup textures
+    for (int i = 0; i < NUM_TEXTURES; i++)
+    {
+        if (textures[i])
+        {
+            free(textures[i]->pixels);
+            free(textures[i]);
+        }
+    }
 
     // Cleanup
     cleanup_raycaster(&raycaster);

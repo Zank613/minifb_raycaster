@@ -1,6 +1,8 @@
+// perform_raycasting.c
+
 #include "../include/raycaster.h"
 
-void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], int width, int height, Color *color_selection)
+void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], int width, int height, Texture *textures[])
 {
     for (int x = 0; x < width; x++) 
     {
@@ -25,7 +27,8 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         {
             stepX = -1;
             sideDistX = (player->x - mapX) * deltaDistX;
-        } else 
+        } 
+        else 
         {
             stepX = 1;
             sideDistX = (mapX + 1.0 - player->x) * deltaDistX;
@@ -35,7 +38,8 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         {
             stepY = -1;
             sideDistY = (player->y - mapY) * deltaDistY;
-        } else 
+        } 
+        else 
         {
             stepY = 1;
             sideDistY = (mapY + 1.0 - player->y) * deltaDistY;
@@ -46,18 +50,21 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         int side;
         while (hit == 0) 
         {
+            // Jump to next map square, OR in x-direction, OR in y-direction
             if (sideDistX < sideDistY) 
             {
                 sideDistX += deltaDistX;
                 mapX += stepX;
                 side = 0;
-            } else 
+            } 
+            else 
             {
                 sideDistY += deltaDistY;
                 mapY += stepY;
                 side = 1;
             }
 
+            // Check if ray has hit a wall
             if (mapX >= 0 && mapX < MAP_WIDTH && mapY >= 0 && mapY < MAP_HEIGHT && worldMap[mapY][mapX] > 0) 
             {
                 hit = 1;
@@ -69,7 +76,8 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         if (side == 0) 
         {
             perpWallDist = (mapX - player->x + (1 - stepX) / 2) / rayDirX;
-        } else 
+        } 
+        else 
         {
             perpWallDist = (mapY - player->y + (1 - stepY) / 2) / rayDirY;
         }
@@ -83,12 +91,64 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         int drawEnd = lineHeight / 2 + height / 2;
         if (drawEnd >= height) drawEnd = height - 1;
 
-        uint32_t color = choose_wall_color(side, worldMap, mapX, mapY, color_selection);
-
-        // Draw the pixels of the stripe as a vertical line
-        for (int y = drawStart; y < drawEnd; y++) 
+        // Choose wall texture based on map value
+        int texNum = worldMap[mapY][mapX] - 1; // Adjust for zero-based indexing
+        if (texNum < 0 || texNum >= NUM_TEXTURES)
         {
-            buffer[y * WIDTH + x] = color;
+            texNum = 0; // Default to texture 0 if out of bounds
         }
+
+        // Calculate value of wallX
+        double wallX; // Exact position where wall was hit
+        if (side == 0)
+        {
+            wallX = player->y + perpWallDist * rayDirY;
+        }
+        else
+        {
+            wallX = player->x + perpWallDist * rayDirX;
+        }
+        wallX -= floor(wallX);
+
+        // x coordinate on the texture
+        int texX = (int)(wallX * (double)texWidth);
+        if (texX < 0) texX = 0;
+        if (texX >= texWidth) texX = texWidth - 1;
+
+        // Adjust texture coordinate for certain sides
+        if (side == 0 && rayDirX > 0)
+        {
+            texX = texWidth - texX - 1;
+        }
+        if (side == 1 && rayDirY < 0)
+        {
+            texX = texWidth - texX - 1;
+        }
+
+        // How much to increase the texture coordinate per screen pixel
+        double step = 1.0 * texHeight / lineHeight;
+
+        // Starting texture coordinate
+        double texPos = (drawStart - height / 2 + lineHeight / 2) * step;
+
+        for (int y = drawStart; y < drawEnd; y++)
+        {
+            // Cast the texture coordinate to integer, and mask with (texHeight - 1) in case of overflow
+            int texY = (int)texPos & (texHeight - 1);
+            texPos += step;
+
+            uint32_t color = textures[texNum]->pixels[texHeight * texY + texX];
+
+            // Make color darker for y-sides
+            if (side == 1)
+            {
+                // Divide color by 2 using bitwise operations
+                color = (color >> 1) & 0x7F7F7F;
+            }
+
+            buffer[y * width + x] = color;
+        }
+
+        // Floor casting can be added here (optional)
     }
 }
