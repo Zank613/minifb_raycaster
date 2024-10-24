@@ -1,8 +1,4 @@
-#ifndef WORLD_MAP_H
-#define WORLD_MAP_H
-
-#define MAP_WIDTH 24
-#define MAP_HEIGHT 24
+#include "../include/raycaster.h"
 
 // Define the map (ensure this is properly defined)
 int worldMap[MAP_HEIGHT][MAP_WIDTH] = {
@@ -31,5 +27,3 @@ int worldMap[MAP_HEIGHT][MAP_WIDTH] = {
     {1, 6, 6, 6, 6, 6, 6, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 0, 1},
     {1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1, 1}
 };
-
-#endif // WORLD_MAP_H
