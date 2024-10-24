@@ -8,7 +8,7 @@ int main(void) {
     }
 
     Player player = {
-        2.5,  // x position
+        5.5,  // x position
         18.5, // y position
         -1,   // dirX
         0,    // dirY
