@@ -109,3 +109,5 @@ This project is licensed under the MIT License. See the [LICENSE](LICENSE) file 
 ## Additional Screenshots
 
 ![The Raycaster](/assets/raycaster_1.png "Raycaster")
+![The Raycaster](/assets/raycaster_3.png "Raycaster")
+![The Raycaster](/assets/raycaster_4.png "Raycaster")
