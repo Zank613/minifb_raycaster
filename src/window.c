@@ -23,7 +23,7 @@ Raycaster raycaster_init(char *name, int width, int height)
     return raycaster;
 }
 
-void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH]) 
+void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH], Color *color_selection) 
 {
     while (mfb_wait_sync(raycaster->window)) 
     {
@@ -31,7 +31,7 @@ void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT
         memset(raycaster->buffer, 0, WIDTH * HEIGHT * sizeof(uint32_t));
 
         // Perform raycasting
-        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT);
+        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT, color_selection);
 
         // Update the window
         if (mfb_update(raycaster->window, raycaster->buffer) < 0) 
