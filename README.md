@@ -1,6 +1,6 @@
 # MiniFB Raycaster
 
-![The Raycaster](/assets/raycaster_2.png "Raycaster")
+![The Raycaster](/assets/raycaster_6.png "Raycaster")
 
 ## Overview
 
