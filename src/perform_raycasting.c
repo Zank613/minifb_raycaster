@@ -2,7 +2,8 @@
 
 #include "../include/raycaster.h"
 
-void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], int width, int height, Texture *textures[])
+void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH],
+                        int width, int height, TextureEntry *textures, int texture_count)
 {
     for (int x = 0; x < width; x++) 
     {
@@ -91,12 +92,32 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         int drawEnd = lineHeight / 2 + height / 2;
         if (drawEnd >= height) drawEnd = height - 1;
 
-        // Choose wall texture based on map value
-        int texNum = worldMap[mapY][mapX] - 1; // Adjust for zero-based indexing
-        if (texNum < 0 || texNum >= NUM_TEXTURES)
+        // Get texture ID from worldMap
+        int texture_id = worldMap[mapY][mapX];
+
+        // Find the texture with matching ID
+        Texture *current_texture = NULL;
+        for (int i = 0; i < texture_count; i++)
         {
-            texNum = 0; // Default to texture 0 if out of bounds
+            if (textures[i].id == texture_id)
+            {
+                current_texture = textures[i].texture;
+                break;
+            }
         }
+
+        if (!current_texture)
+        {
+            // Texture not found, use a default color or skip rendering
+            for (int y = drawStart; y < drawEnd; y++)
+            {
+                buffer[y * width + x] = 0xFF00FF; // Magenta for missing texture
+            }
+            continue;
+        }
+
+        int texWidth = current_texture->width;
+        int texHeight = current_texture->height;
 
         // Calculate value of wallX
         double wallX; // Exact position where wall was hit
@@ -137,18 +158,16 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
             int texY = (int)texPos & (texHeight - 1);
             texPos += step;
 
-            uint32_t color = textures[texNum]->pixels[texHeight * texY + texX];
+            uint32_t color = current_texture->pixels[texHeight * texY + texX];
 
             // Make color darker for y-sides
             if (side == 1)
             {
-                // Divide color by 2 using bitwise operations
-                color = (color >> 1) & 0x7F7F7F;
+                uint32_t a = color & 0xFF000000;
+                color = ((color >> 1) & 0x7F7F7F) | a;
             }
 
             buffer[y * width + x] = color;
         }
-
-        // Floor casting can be added here (optional)
     }
 }
