@@ -23,7 +23,8 @@ Raycaster raycaster_init(char *name, int width, int height)
     return raycaster;
 }
 
-void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH], Texture *textures[])
+void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH],
+                   TextureEntry *textures, int texture_count)
 {
     while (mfb_wait_sync(raycaster->window)) 
     {
@@ -31,7 +32,8 @@ void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT
         memset(raycaster->buffer, 0, WIDTH * HEIGHT * sizeof(uint32_t));
 
         // Perform raycasting
-        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT, textures);
+        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT, textures, texture_count);
+
         // Update the window
         if (mfb_update(raycaster->window, raycaster->buffer) < 0) 
         {
@@ -41,6 +43,12 @@ void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT
         // Handle keyboard input
         const uint8_t *key_buffer = mfb_get_key_buffer(raycaster->window);
         get_move(key_buffer, worldMap, player);
+
+        // Exit on Escape key
+        if (key_buffer[KB_KEY_ESCAPE])
+        {
+            break;
+        }
     }
 }
 

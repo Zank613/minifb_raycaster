@@ -16,9 +16,6 @@
 #define ROT_SPEED 0.01              // rotation speed
 #define MAP_WIDTH 24
 #define MAP_HEIGHT 24
-#define texWidth 64                 // texture width
-#define texHeight 64                // texture height
-#define NUM_TEXTURES 8
 
 extern int worldMap[MAP_HEIGHT][MAP_WIDTH];
 
@@ -37,13 +34,20 @@ typedef struct
     RAYCASTER_ERROR error;
 } Raycaster;
 
-// texture structure assuming each pixel is 4 bytes (ARGB)
+// Texture structure assuming each pixel is 4 bytes (RGBA)
 typedef struct
 {
     int width;
     int height;
-    uint32_t *pixels; // Array of 32-bit packed pixel data (RGBA or RGB)
+    uint32_t *pixels; // Array of 32-bit packed pixel data (RGBA)
 } Texture;
+
+// TextureEntry structure to map texture IDs to Texture pointers
+typedef struct
+{
+    int id;          // Texture ID matching the IDs in worldMap
+    Texture *texture;
+} TextureEntry;
 
 // Player structure
 typedef struct
@@ -60,29 +64,25 @@ typedef struct
 Raycaster raycaster_init(char *name, int width, int height);
 
 // perform raycasting calculations
-void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], int width, int height, Texture *textures[]);
+void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH],
+                        int width, int height, TextureEntry *textures, int texture_count);
 
 // run the raycasting engine loop
-void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH], Texture *textures[]);
+void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH],
+                   TextureEntry *textures, int texture_count);
 
 
 // moves on the direction depending on the input
 void get_move(const uint8_t *key_buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], Player *player);
 
-// initialize texture width and height
-Texture *init_texture(int width, int height);
+// Load textures from configuration
+TextureEntry *load_textures(const char *config_filename, int *texture_count);
 
-void generate_textures(Texture *textures[]);
+// Cleanup textures
+void cleanup_textures(TextureEntry *textures, int texture_count);
 
-// Function to set a pixel's color using 32 bit packed color
+// Function to set a pixel's color using 32-bit packed color (no changes needed)
 void set_pixel(Texture *tex, int x, int y, uint32_t color);
-
-void make_red_gradient(Texture *tex);
-
-void make_black_cross(Texture *tex);
-
-// chooses a wall color 
-uint32_t choose_wall_color(int side, int worldMap[MAP_HEIGHT][MAP_WIDTH], int mapX, int mapY, Color *color_selection);
 
 // cleanup everything
 void cleanup_raycaster(Raycaster *raycaster);

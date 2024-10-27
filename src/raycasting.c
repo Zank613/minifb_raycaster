@@ -1,39 +1,34 @@
-#include "../include/raycaster.h"
+#include "raycaster.h"
 
-int main(void) {
+int main()
+{
     Raycaster raycaster = raycaster_init("Raycaster", WIDTH, HEIGHT);
-    if (raycaster.error != RAYCASTER_SUCCESS) {
-        printf("Failed to open window or initialize resources.\n");
+    if (raycaster.error != RAYCASTER_SUCCESS)
+    {
         return -1;
     }
 
-    Texture *textures[NUM_TEXTURES];
-    generate_textures(textures);
-
-    Player player = 
-    {
-        5.5,  // x position
-        18.5, // y position
-        -1,   // dirX
-        0,    // dirY
-        0,    // planeX
-        0.66  // planeY
+    Player player = {
+        .x = 22.0,
+        .y = 12.0,
+        .dirX = -1.0,
+        .dirY = 0.0,
+        .planeX = 0.0,
+        .planeY = 0.66
     };
 
-    // Run the game loop
-    run_raycaster(&raycaster, &player, worldMap, textures);
-
-    // Cleanup textures
-    for (int i = 0; i < NUM_TEXTURES; i++)
+    int texture_count = 0;
+    TextureEntry *textures = load_textures("../config/textures.conf", &texture_count);
+    if (!textures)
     {
-        if (textures[i])
-        {
-            free(textures[i]->pixels);
-            free(textures[i]);
-        }
+        printf("Failed to load textures.\n");
+        cleanup_raycaster(&raycaster);
+        return -1;
     }
 
-    // Cleanup
+    run_raycaster(&raycaster, &player, worldMap, textures, texture_count);
+
+    cleanup_textures(textures, texture_count);
     cleanup_raycaster(&raycaster);
 
     return 0;
