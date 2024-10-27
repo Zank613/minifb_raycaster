@@ -18,7 +18,7 @@
 #define MAP_HEIGHT 24
 
 // Enable or disable shading (set to 1 to enable, 0 to disable)
-#define ENABLE_SHADING 1
+#define ENABLE_SHADING 0
 
 extern int worldMap[MAP_HEIGHT][MAP_WIDTH];
 
