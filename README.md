@@ -12,6 +12,7 @@ MiniFB Raycaster is a simple raycasting engine built using the MiniFB library. I
 - **Support for custom textures loaded from image files**
 - Simple and lightweight
 - Cross-platform support
+- **Buggy static sprite rendering**
 
 ## Requirements
 
