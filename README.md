@@ -167,6 +167,7 @@ This project is licensed under the MIT License. See the [LICENSE](https://github
  - [MiniFB](https://github.com/emoon/minifb) for the framebuffer library.
  - [stb_image.h](https://github.com/nothings/stb/blob/master/stb_image.h) for image loading.
  - [Lode Vandevenne](https://lodev.org/cgtutor/raycasting.html) for raycasting tutorial.
+ - [areyep.com](https://www.areyep.com/) for permission to use the textures included in the assets/textures.
 
 ## Additional Screenshots
 
