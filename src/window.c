@@ -1,6 +1,6 @@
 #include "../include/raycaster.h"
 
-Raycaster raycaster_init(char *name, int width, int height)
+Raycaster raycaster_init(const char *name, int width, int height)
 {
     Raycaster raycaster;
     raycaster.window = mfb_open(name, width, height);
@@ -26,27 +26,31 @@ Raycaster raycaster_init(char *name, int width, int height)
 void run_raycaster(Raycaster *raycaster, Player *player, int worldMap[MAP_HEIGHT][MAP_WIDTH],
                    TextureEntry *textures, int texture_count)
 {
-    while (mfb_wait_sync(raycaster->window)) 
+    while (1)
     {
-        // Clear buffer
-        memset(raycaster->buffer, 0, WIDTH * HEIGHT * sizeof(uint32_t));
-
-        // Perform raycasting
-        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT, textures, texture_count);
-
-        // Update the window
-        if (mfb_update(raycaster->window, raycaster->buffer) < 0) 
+        // Update events
+        mfb_update_state state = mfb_update_events(raycaster->window);
+        if (state != STATE_OK)
         {
-            break; // Break if the window closed or error occurred
+            printf("Window closed or error occurred.\n");
+            break;
         }
 
-        // Handle keyboard input
+        // Get keyboard input
         const uint8_t *key_buffer = mfb_get_key_buffer(raycaster->window);
-        get_move(key_buffer, worldMap, player);
-
-        // Exit on Escape key
-        if (key_buffer[KB_KEY_ESCAPE])
+        if (key_buffer)
         {
+            get_move(key_buffer, worldMap, player);
+        }
+
+        // Perform raycasting and render the scene
+        perform_raycasting(player, raycaster->buffer, worldMap, WIDTH, HEIGHT, textures, texture_count);
+
+        // Update the window with the buffer
+        state = mfb_update(raycaster->window, raycaster->buffer);
+        if (state != STATE_OK)
+        {
+            printf("Window closed or error occurred during update.\n");
             break;
         }
     }
