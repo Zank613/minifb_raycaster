@@ -1,5 +1,3 @@
-// perform_raycasting.c
-
 #include "../include/raycaster.h"
 #include <stdlib.h>  // For qsort
 #include <MiniFB.h>  // For MiniFB timing functions
@@ -23,6 +21,16 @@ int compare_sprites(const void *a, const void *b)
 void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH],
                         int width, int height, TextureEntry *textures, int texture_count)
 {
+    // Verify player position
+    int playerMapX = (int)player->x;
+    int playerMapY = (int)player->y;
+
+    if (playerMapX < 0 || playerMapX >= MAP_WIDTH || playerMapY < 0 || playerMapY >= MAP_HEIGHT)
+        return;
+    
+    if (worldMap[playerMapY][playerMapX] > 0)
+        return;
+
     // Variables for floor and ceiling textures
     int floorTexId = 9;     // Texture ID for floor
     int ceilingTexId = 10;  // Texture ID for ceiling
@@ -39,33 +47,13 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
     }
 
     if (!floorTexture || !ceilingTexture)
-    {
-        printf("Floor or ceiling texture not found.\n");
-        // Handle error appropriately, possibly exit the function
         return;
-    }
 
     // Z-buffer to store the distance to walls for each screen column
     double *zBuffer = (double *)malloc(width * sizeof(double));
     if (!zBuffer)
-    {
-        printf("Failed to allocate zBuffer.\n");
         return;
-    }
 
-    // Update sprite animations using MiniFB timers
-    for (int i = 0; i < NUM_SPRITES; i++)
-    {
-        double elapsed_time = mfb_timer_now(sprites[i].frame_timer);
-
-        if (elapsed_time >= sprites[i].frame_duration)
-        {
-            mfb_timer_reset(sprites[i].frame_timer);
-            sprites[i].current_frame = (sprites[i].current_frame + 1) % sprites[i].num_frames;
-        }
-    }
-
-    // First, render walls and floor/ceiling
     for (int x = 0; x < width; x++)
     {
         // Ray position and direction
@@ -73,13 +61,16 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         double rayDirX = player->dirX + player->planeX * cameraX;
         double rayDirY = player->dirY + player->planeY * cameraX;
 
+        if (rayDirX == 0) rayDirX = 1e-30;
+        if (rayDirY == 0) rayDirY = 1e-30;
+
         // Map position
         int mapX = (int)player->x;
         int mapY = (int)player->y;
 
         // Length of ray from one x or y-side to next x or y-side
-        double deltaDistX = (rayDirX == 0) ? 1e30 : fabs(1 / rayDirX);
-        double deltaDistY = (rayDirY == 0) ? 1e30 : fabs(1 / rayDirY);
+        double deltaDistX = fabs(1 / rayDirX);
+        double deltaDistY = fabs(1 / rayDirY);
         double sideDistX, sideDistY;
 
         // Step and initial sideDist
@@ -109,10 +100,15 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
 
         // Perform DDA
         int hit = 0;
-        int side;
+        int side = 0;
+        int dda_iterations = 0;
+        int max_dda_iterations = 1000;
         while (hit == 0)
         {
-            // Jump to next map square, OR in x-direction, OR in y-direction
+            dda_iterations++;
+            if (dda_iterations > max_dda_iterations)
+                break;
+
             if (sideDistX < sideDistY)
             {
                 sideDistX += deltaDistX;
@@ -126,42 +122,32 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
                 side = 1;
             }
 
-            // Check if ray has hit a wall
-            if (mapX >= 0 && mapX < MAP_WIDTH && mapY >= 0 && mapY < MAP_HEIGHT && worldMap[mapY][mapX] > 0)
+            if (mapX < 0 || mapX >= MAP_WIDTH || mapY < 0 || mapY >= MAP_HEIGHT)
             {
                 hit = 1;
+                break;
             }
+
+            if (worldMap[mapY][mapX] > 0)
+                hit = 1;
         }
 
         // Calculate distance projected on camera direction
         double perpWallDist;
         if (side == 0)
-        {
             perpWallDist = (mapX - player->x + (1 - stepX) / 2) / rayDirX;
-        }
         else
-        {
             perpWallDist = (mapY - player->y + (1 - stepY) / 2) / rayDirY;
-        }
 
-        // Save the perpendicular distance to the wall for the current column
         zBuffer[x] = perpWallDist;
 
-        // Calculate height of line to draw on screen
         int lineHeight = (int)(height / perpWallDist);
-
-        // Calculate lowest and highest pixel to fill in current stripe
         int drawStart = -lineHeight / 2 + height / 2;
-        if (drawStart < 0)
-            drawStart = 0;
+        if (drawStart < 0) drawStart = 0;
         int drawEnd = lineHeight / 2 + height / 2;
-        if (drawEnd >= height)
-            drawEnd = height - 1;
+        if (drawEnd >= height) drawEnd = height - 1;
 
-        // Get texture ID from worldMap
         int texture_id = worldMap[mapY][mapX];
-
-        // Find the texture with matching ID
         Texture *current_texture = NULL;
         for (int i = 0; i < texture_count; i++)
         {
@@ -174,53 +160,33 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
 
         if (!current_texture)
         {
-            // Texture not found, use a default color or skip rendering
             for (int y = drawStart; y < drawEnd; y++)
-            {
-                buffer[y * width + x] = 0xFF00FF;  // Magenta for missing texture
-            }
+                buffer[y * width + x] = 0xFF00FF;
             continue;
         }
 
         int texWidth = current_texture->width;
         int texHeight = current_texture->height;
 
-        // Calculate value of wallX
-        double wallX;  // Exact position where wall was hit
+        double wallX;
         if (side == 0)
-        {
             wallX = player->y + perpWallDist * rayDirY;
-        }
         else
-        {
             wallX = player->x + perpWallDist * rayDirX;
-        }
         wallX -= floor(wallX);
 
-        // x coordinate on the texture
         int texX = (int)(wallX * (double)texWidth);
-        if (texX < 0)
-            texX = 0;
-        if (texX >= texWidth)
-            texX = texWidth - 1;
+        if (texX < 0) texX = 0;
+        if (texX >= texWidth) texX = texWidth - 1;
 
-        // Adjust texture coordinate for certain sides
         if (side == 0 && rayDirX > 0)
-        {
             texX = texWidth - texX - 1;
-        }
         if (side == 1 && rayDirY < 0)
-        {
             texX = texWidth - texX - 1;
-        }
 
-        // How much to increase the texture coordinate per screen pixel
         double step = 1.0 * texHeight / lineHeight;
-
-        // Starting texture coordinate
         double texPos = (drawStart - height / 2 + lineHeight / 2) * step;
 
-        // Draw the wall
         for (int y = drawStart; y < drawEnd; y++)
         {
             int texY = (int)texPos & (texHeight - 1);
@@ -228,28 +194,6 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
 
             uint32_t color = current_texture->pixels[texHeight * texY + texX];
 
-#if ENABLE_SHADING
-            // Apply distance-based shading
-            double currentDist = perpWallDist;
-            double shadeFactor = 1.0 - (currentDist / 10.0);  // Adjust 10.0 to control shading distance
-            if (shadeFactor < 0.0)
-                shadeFactor = 0.0;
-
-            // Extract color components
-            uint8_t r = (color >> 16) & 0xFF;
-            uint8_t g = (color >> 8) & 0xFF;
-            uint8_t b = color & 0xFF;
-
-            // Apply shading
-            r = (uint8_t)(r * shadeFactor);
-            g = (uint8_t)(g * shadeFactor);
-            b = (uint8_t)(b * shadeFactor);
-
-            // Repack color
-            color = (r << 16) | (g << 8) | b | (color & 0xFF000000);
-#endif
-
-            // Make color darker for y-sides (additional shading)
             if (side == 1)
             {
                 uint32_t a = color & 0xFF000000;
@@ -259,10 +203,7 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
             buffer[y * width + x] = color;
         }
 
-        // Floor casting
         double floorXWall, floorYWall;
-
-        // Determine the position of the floor and ceiling wall hits
         if (side == 0 && rayDirX > 0)
         {
             floorXWall = mapX;
@@ -284,121 +225,63 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
             floorYWall = mapY + 1.0;
         }
 
-        double distWall, distPlayer;
+        double distWall = perpWallDist;
 
-        distWall = perpWallDist;
-        distPlayer = 0.0;
-
-        int yStart = drawEnd + 1;
-        int yEnd = height - 1;
-
-        // Loop from the bottom of the wall to the bottom of the screen
-        for (int y = yStart; y < height; y++)
+        for (int y = drawEnd + 1; y < height; y++)
         {
-            // Current distance from the player to the floor/ceiling
             double currentDist = height / (2.0 * y - height);
-
             double weight = currentDist / distWall;
 
             double currentFloorX = weight * floorXWall + (1.0 - weight) * player->x;
             double currentFloorY = weight * floorYWall + (1.0 - weight) * player->y;
 
-            // Floor texture coordinates
             int floorTexX = (int)(currentFloorX * floorTexture->width) % floorTexture->width;
             int floorTexY = (int)(currentFloorY * floorTexture->height) % floorTexture->height;
 
-            // Ceiling texture coordinates
             int ceilingTexX = (int)(currentFloorX * ceilingTexture->width) % ceilingTexture->width;
             int ceilingTexY = (int)(currentFloorY * ceilingTexture->height) % ceilingTexture->height;
 
-            // Fetch the floor and ceiling colors from the textures
             uint32_t floorColor = floorTexture->pixels[floorTexture->width * floorTexY + floorTexX];
             uint32_t ceilingColor = ceilingTexture->pixels[ceilingTexture->width * ceilingTexY + ceilingTexX];
 
-#if ENABLE_SHADING
-            // Apply shading based on distance
-            double shadeFactor = 1.0 - (currentDist / 10.0);  // Adjust 10.0 to control shading distance
-            if (shadeFactor < 0.0)
-                shadeFactor = 0.0;
-
-            // Floor shading
-            uint8_t fr = (floorColor >> 16) & 0xFF;
-            uint8_t fg = (floorColor >> 8) & 0xFF;
-            uint8_t fb = floorColor & 0xFF;
-
-            fr = (uint8_t)(fr * shadeFactor);
-            fg = (uint8_t)(fg * shadeFactor);
-            fb = (uint8_t)(fb * shadeFactor);
-
-            floorColor = (fr << 16) | (fg << 8) | fb | (floorColor & 0xFF000000);
-
-            // Ceiling shading
-            uint8_t cr = (ceilingColor >> 16) & 0xFF;
-            uint8_t cg = (ceilingColor >> 8) & 0xFF;
-            uint8_t cb = ceilingColor & 0xFF;
-
-            cr = (uint8_t)(cr * shadeFactor);
-            cg = (uint8_t)(cg * shadeFactor);
-            cb = (uint8_t)(cb * shadeFactor);
-
-            ceilingColor = (cr << 16) | (cg << 8) | cb | (ceilingColor & 0xFF000000);
-#endif
-
-            // Set the pixel colors in the buffer
-            buffer[y * width + x] = floorColor;                  // Floor pixel
-            buffer[(height - y) * width + x] = ceilingColor;     // Ceiling pixel
+            buffer[y * width + x] = floorColor;
+            buffer[(height - y) * width + x] = ceilingColor;
         }
     }
 
-    // SPRITE RENDERING
-
-    // Calculate distance from player to each sprite and sort them
     for (int i = 0; i < NUM_SPRITES; i++)
-    {
         sprites[i].distance = ((player->x - sprites[i].x) * (player->x - sprites[i].x) +
                                (player->y - sprites[i].y) * (player->y - sprites[i].y));
-    }
 
-    // Sort sprites by distance (farther sprites drawn first)
     qsort(sprites, NUM_SPRITES, sizeof(Sprite), compare_sprites);
 
-    // Render each sprite
     for (int i = 0; i < NUM_SPRITES; i++)
     {
-        // Translate sprite position to relative to camera
         double spriteX = sprites[i].x - player->x;
         double spriteY = sprites[i].y - player->y;
 
-        // Transform sprite with the inverse camera matrix
         double invDet = 1.0 / (player->planeX * player->dirY - player->dirX * player->planeY);
 
         double transformX = invDet * (player->dirY * spriteX - player->dirX * spriteY);
         double transformY = invDet * (-player->planeY * spriteX + player->planeX * spriteY);
 
+        if (transformY <= 0)
+            continue;
+
         int spriteScreenX = (int)((width / 2) * (1 + transformX / transformY));
-
-        // Calculate height of the sprite on screen
         int spriteHeight = abs((int)(height / transformY));
-
         int drawStartY = -spriteHeight / 2 + height / 2;
-        if (drawStartY < 0)
-            drawStartY = 0;
+        if (drawStartY < 0) drawStartY = 0;
         int drawEndY = spriteHeight / 2 + height / 2;
-        if (drawEndY >= height)
-            drawEndY = height - 1;
+        if (drawEndY >= height) drawEndY = height - 1;
 
-        // Calculate width of the sprite
         int spriteWidth = abs((int)(height / transformY));
-
         int drawStartX = -spriteWidth / 2 + spriteScreenX;
-        if (drawStartX < 0)
-            drawStartX = 0;
+        if (drawStartX < 0) drawStartX = 0;
         int drawEndX = spriteWidth / 2 + spriteScreenX;
-        if (drawEndX >= width)
-            drawEndX = width - 1;
+        if (drawEndX >= width) drawEndX = width - 1;
 
-        // Get the texture ID for the current frame
-        int texture_id = sprites[i].texture_ids[sprites[i].current_frame];
+        int texture_id = sprites[i].texture_id;
         Texture *spriteTexture = NULL;
         for (int t = 0; t < texture_count; t++)
         {
@@ -410,21 +293,16 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         }
 
         if (!spriteTexture)
-        {
-            // Sprite texture not found
             continue;
-        }
 
         int texWidth = spriteTexture->width;
         int texHeight = spriteTexture->height;
 
-        // Loop through each vertical stripe of the sprite on screen
         for (int stripe = drawStartX; stripe < drawEndX; stripe++)
         {
             int texX = (int)(256 * (stripe - (-spriteWidth / 2 + spriteScreenX)) * texWidth / spriteWidth) / 256;
 
-            // Check if sprite is in front of camera and within screen bounds
-            if (transformY > 0 && stripe >= 0 && stripe < width && transformY < zBuffer[stripe])
+            if (stripe >= 0 && stripe < width && transformY < zBuffer[stripe])
             {
                 for (int y = drawStartY; y < drawEndY; y++)
                 {
@@ -433,29 +311,8 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
 
                     uint32_t color = spriteTexture->pixels[texHeight * texY + texX];
 
-                    // Check if pixel is not transparent (assuming 0xFF00FF as transparency key)
                     if ((color & 0x00FFFFFF) != 0xFF00FF)
                     {
-#if ENABLE_SHADING
-                        // Apply distance-based shading
-                        double currentDist = transformY;
-                        double shadeFactor = 1.0 - (currentDist / 10.0);  // Adjust 10.0 to control shading distance
-                        if (shadeFactor < 0.0)
-                            shadeFactor = 0.0;
-
-                        // Extract color components
-                        uint8_t r = (color >> 16) & 0xFF;
-                        uint8_t g = (color >> 8) & 0xFF;
-                        uint8_t b = color & 0xFF;
-
-                        // Apply shading
-                        r = (uint8_t)(r * shadeFactor);
-                        g = (uint8_t)(g * shadeFactor);
-                        b = (uint8_t)(b * shadeFactor);
-
-                        // Repack color
-                        color = (r << 16) | (g << 8) | b | (color & 0xFF000000);
-#endif
                         buffer[y * width + stripe] = color;
                     }
                 }
