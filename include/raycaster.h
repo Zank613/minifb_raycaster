@@ -17,6 +17,9 @@
 #define MAP_WIDTH 24
 #define MAP_HEIGHT 24
 
+// Enable or disable shading (set to 1 to enable, 0 to disable)
+#define ENABLE_SHADING 1
+
 extern int worldMap[MAP_HEIGHT][MAP_WIDTH];
 
 typedef enum
