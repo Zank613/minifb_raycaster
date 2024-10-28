@@ -18,6 +18,63 @@ int compare_sprites(const void *a, const void *b)
         return 0;
 }
 
+void draw_minimap(uint32_t *buffer, int width, int height, int map[MAP_HEIGHT][MAP_WIDTH], Player *player)
+{
+    int mapScale = 4; // Scale factor for the mini-map (1 map cell = 4 pixels on screen)
+    int mapWidth = MAP_WIDTH * mapScale;
+    int mapHeight = MAP_HEIGHT * mapScale;
+
+    int offsetX = 10; // Mini-map offset from the left
+    int offsetY = 10; // Mini-map offset from the top
+
+    // Draw the mini-map
+    for (int y = 0; y < MAP_HEIGHT; y++)
+    {
+        for (int x = 0; x < MAP_WIDTH; x++)
+        {
+            uint32_t color;
+            if (map[y][x] > 0)
+                color = 0x333333; // Wall color on mini-map
+            else
+                color = 0xCCCCCC; // Floor color on mini-map
+
+            // Draw each cell scaled by mapScale
+            for (int i = 0; i < mapScale; i++)
+            {
+                for (int j = 0; j < mapScale; j++)
+                {
+                    int bufferX = offsetX + x * mapScale + i;
+                    int bufferY = offsetY + y * mapScale + j;
+                    if (bufferX >= 0 && bufferX < width && bufferY >= 0 && bufferY < height)
+                        buffer[bufferY * width + bufferX] = color;
+                }
+            }
+        }
+    }
+
+    // Draw the player's position on the mini-map
+    int playerX = offsetX + (int)(player->x * mapScale);
+    int playerY = offsetY + (int)(player->y * mapScale);
+    for (int i = -1; i <= 1; i++)
+    {
+        for (int j = -1; j <= 1; j++)
+        {
+            int bufferX = playerX + i;
+            int bufferY = playerY + j;
+            if (bufferX >= 0 && bufferX < width && bufferY >= 0 && bufferY < height)
+                buffer[bufferY * width + bufferX] = 0xFF0000; // Player color (red)
+        }
+    }
+
+    // Optionally, draw enemy positions
+    for (int i = 0; i < NUM_SPRITES; i++)
+    {
+        int enemyX = offsetX + (int)(sprites[i].x * mapScale);
+        int enemyY = offsetY + (int)(sprites[i].y * mapScale);
+        buffer[enemyY * width + enemyX] = 0x00FF00; // Enemy color (green)
+    }
+}
+
 void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH],
                         int width, int height, TextureEntry *textures, int texture_count)
 {
@@ -281,6 +338,18 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
         int drawEndX = spriteWidth / 2 + spriteScreenX;
         if (drawEndX >= width) drawEndX = width - 1;
 
+        // occlusion culling: skip the sprite if it's farther than the closest wall
+        int visible = 0;
+        for (int x = drawStartX; x < drawEndX; x++)
+        {
+            if (x >= 0 && x < width && transformY < zBuffer[x])
+            {
+                visible = 1;
+                break;
+            }
+        }
+        if (!visible) continue;
+
         int texture_id = sprites[i].texture_id;
         Texture *spriteTexture = NULL;
         for (int t = 0; t < texture_count; t++)
@@ -348,4 +417,7 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
     }
 
     free(zBuffer);
+
+    // Draw the mini-map after all the raycasting is done
+    draw_minimap(buffer, width, height, worldMap, player);
 }
