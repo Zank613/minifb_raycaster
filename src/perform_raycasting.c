@@ -288,6 +288,7 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
             if (textures[t].id == texture_id)
             {
                 spriteTexture = textures[t].texture;
+                remove_background(spriteTexture, BACKGROUND_COLOR);
                 break;
             }
         }
@@ -310,10 +311,36 @@ void perform_raycasting(Player *player, uint32_t *buffer, int worldMap[MAP_HEIGH
                     int texY = ((d * texHeight) / spriteHeight) / 256;
 
                     uint32_t color = spriteTexture->pixels[texHeight * texY + texX];
+                    uint8_t alpha = (color >> 24) & 0xFF; // extract alpha channel
 
-                    if ((color & 0x00FFFFFF) != 0xFF00FF)
+                    if (alpha > 0) // only render if not fully transparent
                     {
-                        buffer[y * width + stripe] = color;
+                        if (alpha == 255) // fully opaque
+                        {
+                            buffer[y * width +stripe] = color;
+                        }
+                        else // blend pixel
+                        {
+                            // get background color from the buffer
+                            uint32_t bgColor = buffer[y * width + stripe];
+
+                            // separate RGBA components
+                            uint8_t bgR = (bgColor >> 16) & 0xFF;
+                            uint8_t bgG = (bgColor >> 8) & 0xFF;
+                            uint8_t bgB = bgColor & 0xFF;
+
+                            uint8_t srcR = (color >> 16) & 0xFF;
+                            uint8_t srcG = (color >> 8) & 0xFF;
+                            uint8_t srcB = color & 0xFF;
+
+                            // perform alpha blending
+                            uint8_t outR = (alpha * srcR + (255 - alpha) * bgR) / 255;
+                            uint8_t outG = (alpha * srcG + (255 - alpha) * bgG) / 255;
+                            uint8_t outB = (alpha * srcB + (255 - alpha) * bgB) / 255;
+
+                            // recombine components back into ARGB
+                            buffer[y * width + stripe] = (255 << 24) | (outR << 16) | (outG << 8) | outB;
+                        }
                     }
                 }
             }

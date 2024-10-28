@@ -91,6 +91,9 @@ void get_move(const uint8_t *key_buffer, int worldMap[MAP_HEIGHT][MAP_WIDTH], Pl
 // Load textures from configuration
 TextureEntry *load_textures(const char *config_filename, int *texture_count);
 
+// Function to remove the background color from a texture
+void remove_background(Texture *tex, uint32_t bg_color);
+
 // Cleanup textures
 void cleanup_textures(TextureEntry *textures, int texture_count);
 

@@ -108,6 +108,18 @@ TextureEntry *load_textures(const char *config_filename, int *texture_count)
     return textures;
 }
 
+// Function to remove the background color from a texture
+void remove_background(Texture *tex, uint32_t bg_color)
+{
+    for (int i = 0; i < tex->width * tex->height; i++)
+    {
+        if (tex->pixels[i] == BACKGROUND_COLOR)
+        {
+            tex->pixels[i] = 0x00000000; // Set pixel to fully transparent
+        }
+    }
+}
+
 void cleanup_textures(TextureEntry *textures, int texture_count)
 {
     for (int i = 0; i < texture_count; i++)

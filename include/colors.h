@@ -1,6 +1,8 @@
 #ifndef COLORS_H
 #define COLORS_H
 
+#define BACKGROUND_COLOR 0xFF63747D  // 0xFF (alpha) + 63747D (hex color)
+
 // Enumeration for colors using RGB values packed into a 32-bit integer
 typedef enum 
 {
